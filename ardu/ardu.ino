@@ -5,7 +5,8 @@ SoftwareSerial mySerial(10, 11); // RX, TX
 
 #define TRIGGER_PIN  12
 #define ECHO_PIN      9
-#define MAX_DISTANCE 200
+#define MAX_DISTANCE 100
+#define LED_PIN  13
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
@@ -160,39 +161,36 @@ int num_flash_files = 0;
 
 void setup()
 {
-   Serial.begin(9600);
+   Serial.begin(57600);
 
    mySerial.begin(9600);
 	delay(10);
-   player.set_volume(30);
+   player.set_volume(10);
 	delay(10);
    num_flash_files = player.get_num_flash_files();
    Serial.print("Files on flash: ");
    Serial.println(num_flash_files);
 }
 
-int badcount = 0;
+int on = 0;
 
 void loop()
 {
-   int uS = sonar.ping_median(5);
-   if (uS)
+   int cm = sonar.ping_cm();
+   if (cm)
    {
-      Serial.print("Ping: ");
-      Serial.print(uS / US_ROUNDTRIP_CM);
-      Serial.println(" cm");
-   }
-   else
-   {
-      if (++badcount > 20)
+      if (cm < 30)
       {
-         Serial.println("No echo");
-         badcount = 0;
+         Serial.print("Ping: ");
+         Serial.print(cm);
+         Serial.println(" cm");
+         int num = 1+random(num_flash_files);
+         Serial.print("Play ");
+         Serial.println(num);
+         player.play_physical(num);
+         delay(5000);
       }
    }
-   int num = 1+random(num_flash_files);
-   Serial.print("Play ");
-   Serial.println(num);
-   player.play_physical(num);
-   delay(5000);
+   digitalWrite(LED_PIN, on);
+   on = !on;
 }
