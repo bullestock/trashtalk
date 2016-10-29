@@ -1,6 +1,13 @@
+#include <NewPing.h>
 #include <SoftwareSerial.h>
 
 SoftwareSerial mySerial(10, 11); // RX, TX
+
+#define TRIGGER_PIN  12
+#define ECHO_PIN      9
+#define MAX_DISTANCE 200
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
 class DFPlayer
 {
@@ -46,6 +53,42 @@ public:
       send_cmd(0x06, volume);
    }
 
+   uint16_t get_num_flash_files()
+   {
+      flush();
+      send_cmd_feedback(0x48);
+      return get_reply();
+   }
+
+   void flush()
+   {
+      if (m_hardware_serial)
+         while (m_hardware_serial->available())
+            ;
+      else
+         while (m_software_serial->available())
+            ;
+   }
+   
+   uint16_t get_reply()
+   {
+      delay(50);
+      uint16_t v = 0;
+      for (int i = 0; i < 10; i++)
+      {
+         uint8_t b = 0;
+         if (m_hardware_serial && m_hardware_serial->available())
+            b = m_hardware_serial->read();
+         if (m_software_serial && m_software_serial->available())
+            b = m_software_serial->read();
+         if (i == 5)
+            v = b;
+         else if (i == 6)
+            v = v*256+b;
+      }
+      return v;
+   }
+   
 private:
    void init_buf()
    {
@@ -58,6 +101,16 @@ private:
    void send_cmd(uint8_t cmd, uint16_t arg = 0)
    {
       send_buf[3] = cmd;
+      send_buf[4] = 0;
+      fill_uint16_bigend((send_buf+5), arg);
+      fill_checksum();
+      send();
+   }
+
+   void send_cmd_feedback(uint8_t cmd, uint16_t arg = 0)
+   {
+      send_buf[3] = cmd;
+      send_buf[4] = 1;
       fill_uint16_bigend((send_buf+5), arg);
       fill_checksum();
       send();
@@ -103,18 +156,41 @@ private:
 
 DFPlayer player(mySerial);
 
+int num_flash_files = 0;
+
 void setup()
 {
    Serial.begin(9600);
 
    mySerial.begin(9600);
-	delay(1);                     // delay 1ms to set volume
-   player.set_volume(30);          // value 0~30
+	delay(10);
+   player.set_volume(30);
+	delay(10);
+   num_flash_files = player.get_num_flash_files();
+   Serial.print("Files on flash: ");
+   Serial.println(num_flash_files);
 }
+
+int badcount = 0;
 
 void loop()
 {
-   for (int i = 1; i <= 50; ++i)
+   int uS = sonar.ping_median(5);
+   if (uS)
+   {
+      Serial.print("Ping: ");
+      Serial.print(uS / US_ROUNDTRIP_CM);
+      Serial.println(" cm");
+   }
+   else
+   {
+      if (++badcount > 20)
+      {
+         Serial.println("No echo");
+         badcount = 0;
+      }
+   }
+   for (int i = 1; i <= num_flash_files; ++i)
    {
       Serial.print("Play ");
       Serial.println(i);
