@@ -190,11 +190,9 @@ void loop()
          badcount = 0;
       }
    }
-   for (int i = 1; i <= num_flash_files; ++i)
-   {
-      Serial.print("Play ");
-      Serial.println(i);
-      player.play_physical(i);
-      delay(2000);
-   }
+   int num = 1+random(num_flash_files);
+   Serial.print("Play ");
+   Serial.println(num);
+   player.play_physical(num);
+   delay(5000);
 }
