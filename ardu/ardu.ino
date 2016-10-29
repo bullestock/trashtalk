@@ -7,6 +7,7 @@ SoftwareSerial mySerial(10, 11); // RX, TX
 #define ECHO_PIN      9
 #define MAX_DISTANCE 100
 #define LED_PIN  13
+#define BUSY_PIN 5
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
@@ -30,23 +31,12 @@ public:
    void play_physical(uint16_t num)
    {
       send_cmd(0x03, num);
-   }
-
-   void get_u_sum()
-   {
-      send_cmd(0x47);
-   }
-
-   //
-   void get_tf_sum()
-   {
-      send_cmd(0x48);
-   }
-
-   //
-   void get_flash_sum()
-   {
-      send_cmd(0x49);
+      while (1)
+      {
+         delay(50);
+         if (digitalRead(BUSY_PIN))
+            break;
+      }
    }
 
    void set_volume(uint16_t volume)
@@ -74,23 +64,52 @@ public:
    uint16_t get_reply()
    {
       delay(50);
-      uint16_t v = 0;
-      for (int i = 0; i < 10; i++)
+      
+      uint8_t buf[10];
+      int n = 0;
+      while (n < 10)
       {
-         uint8_t b = 0;
-         if (m_hardware_serial && m_hardware_serial->available())
-            b = m_hardware_serial->read();
-         if (m_software_serial && m_software_serial->available())
-            b = m_software_serial->read();
-         if (i == 5)
-            v = b;
-         else if (i == 6)
-            v = v*256+b;
+         uint8_t c;
+         if (!get_char(c))
+         {
+            Serial.println("exhausted");
+            return 0;
+         }
+         if ((n == 0) && (c != 0x7E))
+         {
+            Serial.println("wrong");
+            continue;
+         }
+         buf[n++] = c;
       }
-      return v;
+#if 0
+      char s[40];
+      sprintf(s, "Reply: ");
+      for (int i = 0; i < 10; i++)
+         sprintf(s+strlen(s)-1, "%02X ", buf[i]);
+      Serial.println(s);
+#endif
+      if ((n == 10) && (buf[9] == 0xEF))
+         return buf[5]*256+buf[6];
+      return 0;
    }
    
 private:
+   bool get_char(uint8_t& c)
+   {
+      if (m_hardware_serial && m_hardware_serial->available())
+      {
+         c = m_hardware_serial->read();
+         return true;
+      }
+      if (m_software_serial && m_software_serial->available())
+      {
+         c = m_software_serial->read();
+         return true;
+      }
+      return false;
+   }
+   
    void init_buf()
    {
       send_buf[0] = 0x7E;
@@ -167,7 +186,14 @@ void setup()
 	delay(10);
    player.set_volume(10);
 	delay(10);
-   num_flash_files = player.get_num_flash_files();
+   while (num_flash_files == 0)
+   {
+      num_flash_files = player.get_num_flash_files();
+      digitalWrite(LED_PIN, 1);
+      delay(100);
+      digitalWrite(LED_PIN, 0);
+      delay(100);
+   }
    Serial.print("Files on flash: ");
    Serial.println(num_flash_files);
 }
@@ -188,7 +214,6 @@ void loop()
          Serial.print("Play ");
          Serial.println(num);
          player.play_physical(num);
-         delay(5000);
       }
    }
    digitalWrite(LED_PIN, on);
