@@ -5,7 +5,7 @@ SoftwareSerial mySerial(10, 11); // RX, TX
 
 #define TRIGGER_PIN  12
 #define ECHO_PIN      9
-#define MAX_DISTANCE 100
+#define MAX_DISTANCE 30
 #define LED_PIN  13
 #define BUSY_PIN 5
 
@@ -196,6 +196,8 @@ void setup()
    }
    Serial.print("Files on flash: ");
    Serial.println(num_flash_files);
+
+   randomSeed(analogRead(0));
 }
 
 int on = 0;
@@ -205,7 +207,7 @@ void loop()
    int cm = sonar.ping_cm();
    if (cm)
    {
-      if (cm < 30)
+      if (cm < 20)
       {
          Serial.print("Ping: ");
          Serial.print(cm);
