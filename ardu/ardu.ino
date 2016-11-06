@@ -8,6 +8,8 @@ SoftwareSerial mySerial(10, 11); // RX, TX
 #define MAX_DISTANCE 30
 #define LED_PIN  13
 #define BUSY_PIN 5
+#define LED_N_SIDE 2
+#define LED_P_SIDE 3
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
@@ -174,6 +176,26 @@ private:
    SoftwareSerial* m_software_serial;
 };
 
+/// Return light level (1-5000) or -1 if undetermined
+int get_light_level()
+{
+    // Apply reverse voltage, charge up the pin and led capacitance
+    pinMode(LED_N_SIDE, OUTPUT);
+    pinMode(LED_P_SIDE, OUTPUT);
+    digitalWrite(LED_N_SIDE, HIGH);
+    digitalWrite(LED_P_SIDE, LOW);
+
+    // Isolate the negative end of the diode
+    pinMode(LED_N_SIDE, INPUT);
+    digitalWrite(LED_N_SIDE, LOW);  // turn off internal pull-up resistor
+
+    // Count how long it takes the diode to bleed back down to a logic zero
+    for (int j = 0; j < 50000; j++)
+    if (digitalRead(LED_N_SIDE) == 0)
+        return j;
+    return -1;
+}
+
 DFPlayer player(mySerial);
 
 int num_flash_files = 0;
@@ -204,20 +226,21 @@ int on = 0;
 
 void loop()
 {
-   int cm = sonar.ping_cm();
-   if (cm)
-   {
-      if (cm < 20)
-      {
-         Serial.print("Ping: ");
-         Serial.print(cm);
-         Serial.println(" cm");
-         int num = 1+random(num_flash_files);
-         Serial.print("Play ");
-         Serial.println(num);
-         player.play_physical(num);
-      }
-   }
-   digitalWrite(LED_PIN, on);
-   on = !on;
+    const int threshold = 10000;
+    
+    const int level = get_light_level();
+    if (level > 0)
+    {
+            Serial.print("Level: ");
+            Serial.println(level);
+        if (level > threshold)
+        {
+            int num = 1+random(num_flash_files);
+            Serial.print("Play ");
+            Serial.println(num);
+            player.play_physical(num);
+        }
+    }
+    digitalWrite(LED_PIN, on);
+    on = !on;
 }
