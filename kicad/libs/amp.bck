@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP LM386MODULE
+D Audio 3.1W Stereo Power Amplifier, TO220-9
+K LM4950 Stereo Power Aplifier 3.1W
+F http://www.ti.com/lit/ds/symlink/lm4950.pdf
+$ENDCMP
+#
+#End Doc Library

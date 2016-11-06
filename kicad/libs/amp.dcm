@@ -1,0 +1,8 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP LM386MODULE
+D Audio 3.1W Stereo Power Amplifier, TO220-9
+K LM386 Power Aplifier
+$ENDCMP
+#
+#End Doc Library
