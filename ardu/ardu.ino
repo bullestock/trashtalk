@@ -1,17 +1,11 @@
-#include <NewPing.h>
 #include <SoftwareSerial.h>
 
 SoftwareSerial mySerial(10, 11); // RX, TX
 
-#define TRIGGER_PIN  12
-#define ECHO_PIN      9
-#define MAX_DISTANCE 30
-#define LED_PIN  13
-#define BUSY_PIN 5
-#define LED_N_SIDE 2
-#define LED_P_SIDE 3
-
-NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
+#define LED_PIN    13
+#define BUSY_PIN   12
+#define LED_N_SIDE A5
+#define LED_P_SIDE A0
 
 class DFPlayer
 {
@@ -176,7 +170,7 @@ private:
    SoftwareSerial* m_software_serial;
 };
 
-/// Return light level (1-5000) or -1 if undetermined
+/// Return light level (1-50000) or -1 if undetermined
 int get_light_level()
 {
     // Apply reverse voltage, charge up the pin and led capacitance
@@ -191,8 +185,8 @@ int get_light_level()
 
     // Count how long it takes the diode to bleed back down to a logic zero
     for (int j = 0; j < 50000; j++)
-    if (digitalRead(LED_N_SIDE) == 0)
-        return j;
+        if (digitalRead(LED_N_SIDE) == 0)
+            return j;
     return -1;
 }
 
@@ -202,45 +196,50 @@ int num_flash_files = 0;
 
 void setup()
 {
-   Serial.begin(57600);
+    Serial.begin(57600);
+    Serial.println("TrashTalk v 0.1");
 
-   mySerial.begin(9600);
+    mySerial.begin(9600);
 	delay(10);
-   player.set_volume(10);
+    player.set_volume(10);
 	delay(10);
-   while (num_flash_files == 0)
-   {
-      num_flash_files = player.get_num_flash_files();
-      digitalWrite(LED_PIN, 1);
-      delay(100);
-      digitalWrite(LED_PIN, 0);
-      delay(100);
-   }
-   Serial.print("Files on flash: ");
-   Serial.println(num_flash_files);
+    while (num_flash_files == 0)
+    {
+        num_flash_files = player.get_num_flash_files();
+        digitalWrite(LED_PIN, 1);
+        delay(100);
+        digitalWrite(LED_PIN, 0);
+        delay(100);
+    }
+    Serial.print("Files on flash: ");
+    Serial.println(num_flash_files);
 
-   randomSeed(analogRead(0));
+    randomSeed(analogRead(0));
 }
 
-int on = 0;
-
+int n = 0;
+int p = 0;
 void loop()
 {
-    const int threshold = 10000;
+    ++n;
+    const int threshold = 4000;
     
     const int level = get_light_level();
-    if (level > 0)
+    if (level > threshold)
     {
-            Serial.print("Level: ");
-            Serial.println(level);
-        if (level > threshold)
-        {
-            int num = 1+random(num_flash_files);
-            Serial.print("Play ");
-            Serial.println(num);
-            player.play_physical(num);
-        }
+        Serial.print("Level: ");
+        Serial.println(level);
+        int num = 1+random(num_flash_files);
+        Serial.print("Play ");
+        Serial.println(num);
+        player.play_physical(num);
+        delay(1000);
+        Serial.println("Ready");
     }
-    digitalWrite(LED_PIN, on);
-    on = !on;
+
+    // Flash led at 10% duty cycle
+    digitalWrite(LED_PIN, n > 100);
+    if (n > 110)
+        n = 0;
+    delay(1);
 }
