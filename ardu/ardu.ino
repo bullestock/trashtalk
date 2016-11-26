@@ -227,6 +227,7 @@ void loop()
     const int level = get_light_level();
     if (level > threshold)
     {
+        digitalWrite(LED_PIN, HIGH);
         Serial.print("Level: ");
         Serial.println(level);
         int num = 1+random(num_flash_files);
@@ -235,11 +236,12 @@ void loop()
         player.play_physical(num);
         delay(1000);
         Serial.println("Ready");
+        digitalWrite(LED_PIN, LOW);
     }
 
     // Flash led at 10% duty cycle
-    digitalWrite(LED_PIN, n > 100);
-    if (n > 110)
+    digitalWrite(LED_PIN, n > 50);
+    if (n > 60)
         n = 0;
     delay(1);
 }
