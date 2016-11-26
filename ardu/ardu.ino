@@ -1,9 +1,9 @@
 #include <SoftwareSerial.h>
 
-SoftwareSerial mySerial(10, 11); // RX, TX
+SoftwareSerial mySerial(2, 3); // RX, TX
 
 #define LED_PIN    13
-#define BUSY_PIN   12
+#define BUSY_PIN   7
 #define LED_N_SIDE A5
 #define LED_P_SIDE A0
 
