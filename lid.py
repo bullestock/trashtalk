@@ -14,7 +14,7 @@ SEGMENTS = 16
 
 lid_h = 5+d
 
-hole_x_offset = 6
+hole_x_offset = 7
 hole_y_offset = 18.5
 corr = 0.5
 
@@ -29,8 +29,11 @@ def inner():
 def hole():
     return translate([hole_x_offset, -hole_y_offset, -d])(cylinder(r = 3.5, h = lid_h+2*d))
 
+def tube():
+    return translate([hole_x_offset, -hole_y_offset, 0])(cylinder(r = 5, h = lid_h))
+
 def assembly():
-    return rotate([180, 0, 0])(outer() - hole() - inner())
+    return rotate([180, 0, 0])(outer() - inner() + tube() - hole())
 
 if __name__ == '__main__':
     a = assembly()
