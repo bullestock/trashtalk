@@ -29,7 +29,7 @@ hole_y_offset = 0
 hole_z_offset = 15
 
 wire_hole_x_offset = 7
-wire_hole_z_offset = 15
+wire_hole_z_offset = 25
 
 def outer():
     return translate([-outside_w/2, -outside_l/2, 0])(cube([outside_w, outside_l, outside_h]))
@@ -44,7 +44,7 @@ def recess():
     return translate([-inside_w/2-1.5*d, -recess_w/2-slot_h_offset, slot_v_offset-(recess_h-slot_h)/2])(cube([d, recess_w, recess_h]))
 
 def wire_hole():
-    return translate([inside_w/2-d, -hole_y_offset, hole_z_offset])(rotate([0, 90, 0])(cylinder(r = 2, h = 3*d)))
+    return translate([inside_w/2-d, -hole_y_offset, wire_hole_z_offset])(rotate([0, 90, 0])(cylinder(r = 3, h = 3*d)))
 
 def led_wire_hole():
     return translate([wire_hole_x_offset, inside_l/2+2*d, wire_hole_z_offset])(rotate([90, 0, 0])(cylinder(r = 2, h = 3*d)))
