@@ -12,7 +12,8 @@ from defs import *
 
 SEGMENTS = 16
 
-lid_h = 5+d
+lid_h = 2*d
+tube_h = 5+d
 
 hole_x_offset = 7
 hole_y_offset = 18.5
@@ -27,10 +28,10 @@ def inner():
     return translate([-x/2, -y/2, -0.1])(cube([x, y, lid_h-d]))
 
 def hole():
-    return translate([hole_x_offset, -hole_y_offset, -d])(cylinder(r = 3.5, h = lid_h+2*d))
+    return translate([hole_x_offset, -hole_y_offset, -tube_h/2-d])(cylinder(r = 3.5, h = tube_h+2*d))
 
 def tube():
-    return translate([hole_x_offset, -hole_y_offset, 0])(cylinder(r = 5, h = lid_h))
+    return translate([hole_x_offset, -hole_y_offset, -tube_h/2])(cylinder(r = 5, h = tube_h))
 
 def assembly():
     return rotate([180, 0, 0])(outer() - inner() + tube() - hole())
