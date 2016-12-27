@@ -171,7 +171,7 @@ private:
 };
 
 /// Return light level (1-50000) or -1 if undetermined
-int get_light_level()
+unsigned long get_light_level()
 {
     // Apply reverse voltage, charge up the pin and led capacitance
     pinMode(LED_N_SIDE, OUTPUT);
@@ -184,7 +184,7 @@ int get_light_level()
     digitalWrite(LED_N_SIDE, LOW);  // turn off internal pull-up resistor
 
     // Count how long it takes the diode to bleed back down to a logic zero
-    for (int j = 0; j < 50000; j++)
+    for (unsigned long j = 0; j < 50000; j++)
         if (digitalRead(LED_N_SIDE) == 0)
             return j;
     return -1;
@@ -197,7 +197,7 @@ int num_flash_files = 0;
 void setup()
 {
     Serial.begin(57600);
-    Serial.println("TrashTalk v 0.1");
+    Serial.println("TrashTalk v 0.2");
 
     mySerial.begin(9600);
 	delay(10);
@@ -222,9 +222,9 @@ int p = 0;
 void loop()
 {
     ++n;
-    const int threshold = 4000;
+    const int threshold = 6000;
     
-    const int level = get_light_level();
+    const auto level = get_light_level();
     if (level > threshold)
     {
         digitalWrite(LED_PIN, HIGH);
