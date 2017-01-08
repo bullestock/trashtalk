@@ -7,6 +7,13 @@ SoftwareSerial mySerial(2, 3); // RX, TX
 #define LED_N_SIDE A5
 #define LED_P_SIDE A0
 
+// If the level of darkness exceeds this value, a sound is played.
+const int TRIGGER_THRESHOLD = 6000;
+
+// The limit value for measuring darkness, i.e. the maximum value that get_darkness_level() will ever return.
+// Must be larger than TRIGGER_THRESHOLD.
+const int MAX_DARKNESS_LEVEL = TRIGGER_THRESHOLD+100;
+
 class DFPlayer
 {
 public:
@@ -170,8 +177,8 @@ private:
    SoftwareSerial* m_software_serial;
 };
 
-/// Return light level (1-50000) or -1 if undetermined
-unsigned long get_light_level()
+/// Return darkness level (1-MAX_DARKNESS_LEVEL).
+unsigned long get_darkness_level()
 {
     // Apply reverse voltage, charge up the pin and led capacitance
     pinMode(LED_N_SIDE, OUTPUT);
@@ -184,10 +191,10 @@ unsigned long get_light_level()
     digitalWrite(LED_N_SIDE, LOW);  // turn off internal pull-up resistor
 
     // Count how long it takes the diode to bleed back down to a logic zero
-    for (unsigned long j = 0; j < 50000; j++)
+    for (unsigned long j = 0; j < MAX_DARKNESS_LEVEL; j++)
         if (digitalRead(LED_N_SIDE) == 0)
             return j;
-    return -1;
+    return MAX_DARKNESS_LEVEL;
 }
 
 DFPlayer player(mySerial);
@@ -218,14 +225,12 @@ void setup()
 }
 
 int n = 0;
-int p = 0;
 void loop()
 {
     ++n;
-    const int threshold = 6000;
     
-    const auto level = get_light_level();
-    if (level > threshold)
+    const auto level = get_darkness_level();
+    if (level > TRIGGER_THRESHOLD)
     {
         digitalWrite(LED_PIN, HIGH);
         Serial.print("Level: ");
@@ -239,9 +244,9 @@ void loop()
         digitalWrite(LED_PIN, LOW);
     }
 
-    // Flash led at 10% duty cycle
+    // Flash led at 2% duty cycle
     digitalWrite(LED_PIN, n > 50);
-    if (n > 60)
+    if (n > 51)
         n = 0;
     delay(1);
 }
