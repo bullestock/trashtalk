@@ -6,13 +6,10 @@ SoftwareSerial mySerial(2, 3); // RX, TX
 #define BUSY_PIN   7
 #define LED_N_SIDE A5
 #define LED_P_SIDE A0
-
-// If the level of darkness exceeds this value, a sound is played.
-const int TRIGGER_THRESHOLD = 9000;
+#define POT_PIN    A7
 
 // The limit value for measuring darkness, i.e. the maximum value that get_darkness_level() will ever return.
-// Must be larger than TRIGGER_THRESHOLD.
-const int MAX_DARKNESS_LEVEL = TRIGGER_THRESHOLD+20000;
+const int MAX_DARKNESS_LEVEL = 30000;
 
 class DFPlayer
 {
@@ -52,49 +49,49 @@ public:
         return !digitalRead(BUSY_PIN);
     }
 
-   void set_volume(uint16_t volume)
-   {
-      send_cmd(0x06, volume);
-   }
+    void set_volume(uint16_t volume)
+    {
+        send_cmd(0x06, volume);
+    }
 
-   uint16_t get_num_flash_files()
-   {
-      flush();
-      send_cmd_feedback(0x48);
-      return get_reply();
-   }
+    uint16_t get_num_flash_files()
+    {
+        flush();
+        send_cmd_feedback(0x48);
+        return get_reply();
+    }
 
-   void flush()
-   {
-      if (m_hardware_serial)
-         while (m_hardware_serial->available())
-            ;
-      else
-         while (m_software_serial->available())
-            ;
-   }
+    void flush()
+    {
+        if (m_hardware_serial)
+            while (m_hardware_serial->available())
+                ;
+        else
+            while (m_software_serial->available())
+                ;
+    }
    
-   uint16_t get_reply()
-   {
-      delay(50);
+    uint16_t get_reply()
+    {
+        delay(50);
       
-      uint8_t buf[10];
-      int n = 0;
-      while (n < 10)
-      {
-         uint8_t c;
-         if (!get_char(c))
-         {
-            Serial.println("exhausted");
-            return 0;
-         }
-         if ((n == 0) && (c != 0x7E))
-         {
-            Serial.println("wrong");
-            continue;
-         }
-         buf[n++] = c;
-      }
+        uint8_t buf[10];
+        int n = 0;
+        while (n < 10)
+        {
+            uint8_t c;
+            if (!get_char(c))
+            {
+                //Serial.println("exhausted");
+                return 0;
+            }
+            if ((n == 0) && (c != 0x7E))
+            {
+                //Serial.println("wrong");
+                continue;
+            }
+            buf[n++] = c;
+        }
 #if 0
       char s[40];
       sprintf(s, "Reply: ");
@@ -232,6 +229,7 @@ void setup()
     Serial.println(num_flash_files);
 
     randomSeed(analogRead(0));
+    pinMode(POT_PIN, INPUT);
 }
 
 int n = 0;
@@ -248,12 +246,16 @@ void loop()
     ++n;
 
     const auto level = get_darkness_level();
-            Serial.print("Level: ");
-            Serial.println(level);
+    //Serial.print("Level: "); Serial.println(level);
+    // 0-1023
+    const auto pot_value = analogRead(POT_PIN);
+    // 5000-15230
+    const int trigger_threshold = 5000+10*pot_value;
+    //Serial.print("Threshold: "); Serial.println(trigger_threshold);
     switch (state)
     {
     case STATE_IDLE:
-        if (level > TRIGGER_THRESHOLD)
+        if (level > trigger_threshold)
         {
             digitalWrite(LED_PIN, HIGH);
             Serial.print("Level: ");
