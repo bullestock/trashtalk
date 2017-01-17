@@ -8,39 +8,49 @@ SoftwareSerial mySerial(2, 3); // RX, TX
 #define LED_P_SIDE A0
 
 // If the level of darkness exceeds this value, a sound is played.
-const int TRIGGER_THRESHOLD = 6000;
+const int TRIGGER_THRESHOLD = 9000;
 
 // The limit value for measuring darkness, i.e. the maximum value that get_darkness_level() will ever return.
 // Must be larger than TRIGGER_THRESHOLD.
-const int MAX_DARKNESS_LEVEL = TRIGGER_THRESHOLD+100;
+const int MAX_DARKNESS_LEVEL = TRIGGER_THRESHOLD+20000;
 
 class DFPlayer
 {
 public:
-   DFPlayer(HardwareSerial& _s)
-      : m_hardware_serial(&_s),
-        m_software_serial(nullptr)
-   {
-      init_buf();
-   }
+    DFPlayer(HardwareSerial& _s)
+        : m_hardware_serial(&_s),
+          m_software_serial(nullptr)
+    {
+        init_buf();
+    }
    
-   DFPlayer(SoftwareSerial& _s)
-      : m_hardware_serial(nullptr),
-        m_software_serial(&_s)
-   {
-      init_buf();
-   }
+    DFPlayer(SoftwareSerial& _s)
+        : m_hardware_serial(nullptr),
+          m_software_serial(&_s)
+    {
+        init_buf();
+    }
    
-   void play_physical(uint16_t num)
-   {
-      send_cmd(0x03, num);
-      while (1)
-      {
-         delay(50);
-         if (digitalRead(BUSY_PIN))
-            break;
-      }
-   }
+    void play_physical(uint16_t num)
+    {
+        send_cmd(0x03, num);
+        while (1)
+        {
+            delay(50);
+            if (digitalRead(BUSY_PIN))
+                break;
+        }
+    }
+
+    void start_play_physical(uint16_t num)
+    {
+        send_cmd(0x03, num);
+    }
+
+    bool is_busy() const
+    {
+        return !digitalRead(BUSY_PIN);
+    }
 
    void set_volume(uint16_t volume)
    {
@@ -225,25 +235,52 @@ void setup()
 }
 
 int n = 0;
+enum State {
+    STATE_IDLE,
+    STATE_PLAYING,
+    STATE_WAIT
+} state = STATE_IDLE;
+
+unsigned long wait_start = 0;
+
 void loop()
 {
     ++n;
-    
-    const auto level = get_darkness_level();
-    if (level > TRIGGER_THRESHOLD)
-    {
-        digitalWrite(LED_PIN, HIGH);
-        Serial.print("Level: ");
-        Serial.println(level);
-        int num = 1+random(num_flash_files);
-        Serial.print("Play ");
-        Serial.println(num);
-        player.play_physical(num);
-        delay(1000);
-        Serial.println("Ready");
-        digitalWrite(LED_PIN, LOW);
-    }
 
+    const auto level = get_darkness_level();
+            Serial.print("Level: ");
+            Serial.println(level);
+    switch (state)
+    {
+    case STATE_IDLE:
+        if (level > TRIGGER_THRESHOLD)
+        {
+            digitalWrite(LED_PIN, HIGH);
+            Serial.print("Level: ");
+            Serial.println(level);
+            int num = 1+random(num_flash_files);
+            Serial.print("Play ");
+            Serial.println(num);
+            player.start_play_physical(num);
+            state = STATE_PLAYING;
+        }
+        break;
+
+    case STATE_PLAYING:
+        if (!player.is_busy())
+        {
+            digitalWrite(LED_PIN, LOW);
+            state = STATE_WAIT;
+            wait_start = millis();
+        }
+        break;
+
+    case STATE_WAIT:
+        if ((millis() - wait_start) > 1000)
+            state = STATE_IDLE;
+        break;
+    }
+        
     // Flash led at 2% duty cycle
     digitalWrite(LED_PIN, n > 50);
     if (n > 51)
