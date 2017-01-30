@@ -28,9 +28,6 @@ outside_h = inside_h + 2*d
 hole_y_offset = 0
 hole_z_offset = 15
 
-wire_hole_x_offset = 7
-wire_hole_z_offset = 25
-
 def outer():
     return translate([-outside_w/2, -outside_l/2, 0])(cube([outside_w, outside_l, outside_h]))
 
@@ -43,18 +40,23 @@ def card_slot():
 def recess():
     return translate([-inside_w/2-1.5*d, -recess_w/2-slot_h_offset, slot_v_offset-(recess_h-slot_h)/2])(cube([d, recess_w, recess_h]))
 
-def wire_hole():
-    return translate([inside_w/2-d, -hole_y_offset, wire_hole_z_offset])(rotate([0, 90, 0])(cube([3*d, 4*d, 3*d])))
+def usb_hole():
+    h = 7
+    w = 10
+    return translate([inside_w/2-d, outside_l/2-w-11, 11+h/2])(rotate([0, 90, 0])(cube([h, w, 3*d])))
 
-def led_wire_hole():
-    return translate([wire_hole_x_offset, inside_l/2+2*d, wire_hole_z_offset])(rotate([90, 0, 0])(cylinder(r = 2, h = 3*d)))
+def wire_hole(direction):
+    return translate([outside_w/2-2*d if direction > 0 else -outside_w/2-d, 0, outside_h-6])(back(2)(cube([3*d, 4, 7]))+rotate([0, 90, 0])(cylinder(r = 2, h = 3*d)))
 
 def lidsups():
     l = up(inside_h-d)(cylinder(h = 2, r = 2))
     return translate([-inside_w/2, -inside_l/2])(l) + translate([-inside_w/2, inside_l/2])(l) + translate([inside_w/2, -inside_l/2])(l) + translate([inside_w/2, inside_l/2])(l)
 
+def screwhole():
+    return translate([0, -outside_l/2+d*2, outside_h-10])(rotate([90, 0, 0])(cylinder(r = 2, h = 3*d)))
+
 def assembly():
-    return outer() - led_wire_hole() - wire_hole() - card_slot() - inner() - recess() +  lidsups()
+    return outer() - usb_hole() - card_slot() - inner() - recess() +  lidsups() - forward(outside_w/2-6)(wire_hole(1)) - back(outside_w/2-6)(wire_hole(-1)) - left(15)(screwhole()) - right(15)(screwhole())
 
 if __name__ == '__main__':
     a = assembly()
