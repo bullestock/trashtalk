@@ -43,7 +43,7 @@ def recess():
 def usb_hole():
     h = 7
     w = 10
-    return translate([inside_w/2-d, outside_l/2-w-11, 11+h/2])(rotate([0, 90, 0])(cube([h, w, 3*d])))
+    return translate([inside_w/2-d, outside_l/2-w-11, 14+h/2])(rotate([0, 90, 0])(cube([h, w, 3*d])))
 
 def wire_hole(direction):
     return translate([outside_w/2-2*d if direction > 0 else -outside_w/2-d, 0, outside_h-6])(back(2)(cube([3*d, 4, 7]))+rotate([0, 90, 0])(cylinder(r = 2, h = 3*d)))
