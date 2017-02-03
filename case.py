@@ -45,8 +45,8 @@ def usb_hole():
     w = 10
     return translate([inside_w/2-d, outside_l/2-w-11, 14+h/2])(rotate([0, 90, 0])(cube([h, w, 3*d])))
 
-def wire_hole(direction):
-    return translate([outside_w/2-2*d if direction > 0 else -outside_w/2-d, 0, outside_h-6])(back(2)(cube([3*d, 4, 7]))+rotate([0, 90, 0])(cylinder(r = 2, h = 3*d)))
+def wire_hole(direction, depth):
+    return translate([outside_w/2-2*d if direction > 0 else -outside_w/2-d, 0, outside_h-depth])(back(2)(cube([3*d, 4, depth+1]))+rotate([0, 90, 0])(cylinder(r = 2, h = 3*d)))
 
 def lidsups():
     l = up(inside_h-d)(cylinder(h = 2, r = 2))
@@ -56,7 +56,11 @@ def screwhole():
     return translate([0, -outside_l/2+d*2, outside_h-10])(rotate([90, 0, 0])(cylinder(r = 2, h = 3*d)))
 
 def assembly():
-    return outer() - usb_hole() - card_slot() - inner() - recess() +  lidsups() - forward(outside_w/2-6)(wire_hole(1)) - back(outside_w/2-6)(wire_hole(-1)) - left(15)(screwhole()) - right(15)(screwhole())
+    a1 = outer() - usb_hole() - card_slot() - inner() - recess() + lidsups()
+    wh1 = forward(outside_w/2-6)(wire_hole(1, 6))
+    wh2 = back(outside_w/2-6)(wire_hole(-1, 9))
+    sh = left(15)(screwhole()) + right(15)(screwhole())
+    return a1 - wh1 - wh2 - sh
 
 if __name__ == '__main__':
     a = assembly()
