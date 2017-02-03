@@ -211,7 +211,7 @@ int num_flash_files = 0;
 void setup()
 {
     Serial.begin(57600);
-    Serial.println("TrashTalk v 0.2");
+    Serial.println("TrashTalk v 0.3");
 
     mySerial.begin(9600);
 	delay(10);
@@ -240,6 +240,7 @@ enum State {
 } state = STATE_IDLE;
 
 unsigned long wait_start = 0;
+unsigned long play_start = 0;
 
 void loop()
 {
@@ -264,28 +265,44 @@ void loop()
             Serial.print("Play ");
             Serial.println(num);
             player.start_play_physical(num);
+            play_start = millis();
             state = STATE_PLAYING;
         }
         break;
 
     case STATE_PLAYING:
-        if (!player.is_busy())
         {
-            digitalWrite(LED_PIN, LOW);
-            state = STATE_WAIT;
-            wait_start = millis();
+            const bool busy = player.is_busy();
+            //Serial.println(busy);
+            if (!busy)
+            {
+                digitalWrite(LED_PIN, LOW);
+                state = STATE_WAIT;
+                wait_start = millis();
+            }
+            else if ((millis() - play_start) > 30000)
+            {
+                Serial.println("TIMEOUT");
+                state = STATE_IDLE;
+            }
         }
         break;
 
     case STATE_WAIT:
         if ((millis() - wait_start) > 1000)
+        {
             state = STATE_IDLE;
+            Serial.println("Ready");
+        }
         break;
     }
-        
-    // Flash led at 2% duty cycle
-    digitalWrite(LED_PIN, n > 50);
-    if (n > 51)
-        n = 0;
-    delay(1);
+
+    if (state == STATE_IDLE)
+    {
+        // Flash led at 2% duty cycle
+        digitalWrite(LED_PIN, n > 50);
+        if (n > 51)
+            n = 0;
+        delay(1);
+    }
 }
