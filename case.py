@@ -59,8 +59,9 @@ def assembly():
     a1 = outer() - usb_hole() - card_slot() - inner() - recess() + lidsups()
     wh1 = forward(outside_w/2-6)(wire_hole(1, 6))
     wh2 = back(outside_w/2-6)(wire_hole(-1, 9))
+    wh3 = back(outside_w/2-6)(wire_hole(1, 6))
     sh = left(15)(screwhole()) + right(15)(screwhole())
-    return a1 - wh1 - wh2 - sh
+    return a1 - wh1 - wh2 - wh3 - sh
 
 if __name__ == '__main__':
     a = assembly()
