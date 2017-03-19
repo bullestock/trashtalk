@@ -6,7 +6,6 @@ SoftwareSerial mySerial(2, 3); // RX, TX
 #define BUSY_PIN   7
 #define LED_N_SIDE A5
 #define LED_P_SIDE A0
-#define POT_PIN    A7
 
 // The limit value for measuring darkness, i.e. the maximum value that get_darkness_level() will ever return.
 const int MAX_DARKNESS_LEVEL = 30000;
@@ -208,6 +207,37 @@ DFPlayer player(mySerial);
 
 int num_flash_files = 0;
 
+const int AVG_SAMPLES = 50;
+const int TRIGGER_MARGIN = 500;
+
+unsigned long samples[AVG_SAMPLES];
+unsigned long average = 0;
+
+void calc_average()
+{
+    unsigned long sum = 0;
+    for (int i = 0; i < AVG_SAMPLES; ++i)
+        sum += samples[i];
+    const auto initial_threshold = static_cast<unsigned long>(sum*0.9/AVG_SAMPLES);
+#ifdef DBG
+    Serial.print("Threshold ");
+    Serial.println(initial_threshold);
+#endif
+    sum = 0;
+    int n = 0;
+    for (int i = 0; i < AVG_SAMPLES; ++i)
+        if (samples[i] > initial_threshold)
+        {
+            sum += samples[i];
+            ++n;
+        }
+    average = sum/n;
+#ifdef DBG
+    Serial.print("Average: ");
+    Serial.println(average);
+#endif
+}
+
 void setup()
 {
     Serial.begin(57600);
@@ -229,7 +259,14 @@ void setup()
     Serial.println(num_flash_files);
 
     randomSeed(analogRead(0));
-    pinMode(POT_PIN, INPUT);
+
+    for (int i = 0; i < AVG_SAMPLES; ++i)
+    {
+        samples[i] = get_darkness_level();
+        Serial.println(samples[i]);
+        delay(20);
+    }
+    calc_average();
 }
 
 int n = 0;
@@ -247,11 +284,8 @@ void loop()
     ++n;
 
     const auto level = get_darkness_level();
-    //Serial.print("Level: "); Serial.println(level);
-    // 0-1023
-    const auto pot_value = analogRead(POT_PIN);
-    // 5000-15230
-    const int trigger_threshold = 5000+10*pot_value;
+    Serial.print("Level: "); Serial.println(level);
+    const int trigger_threshold = average + TRIGGER_MARGIN;
     //Serial.print("Threshold: "); Serial.println(trigger_threshold);
     switch (state)
     {
@@ -260,13 +294,24 @@ void loop()
         {
             digitalWrite(LED_PIN, HIGH);
             Serial.print("Level: ");
-            Serial.println(level);
+            Serial.print(level);
+            Serial.print(" T ");
+            Serial.println(trigger_threshold);
             int num = 1+random(num_flash_files);
             Serial.print("Play ");
             Serial.println(num);
             player.start_play_physical(num);
             play_start = millis();
             state = STATE_PLAYING;
+        }
+        else
+        {
+            for (int i = 1; i < AVG_SAMPLES; ++i)
+            {
+                samples[i-1] = samples[i];
+            }
+            samples[AVG_SAMPLES-1] = level;
+            calc_average();
         }
         break;
 
