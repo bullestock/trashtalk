@@ -194,6 +194,8 @@ unsigned long get_darkness_level()
     digitalWrite(LED_N_SIDE, HIGH);
     digitalWrite(LED_P_SIDE, LOW);
 
+    delay(3);
+
     // Isolate the negative end of the diode
     pinMode(LED_N_SIDE, INPUT);
     digitalWrite(LED_N_SIDE, LOW);  // turn off internal pull-up resistor
@@ -215,29 +217,28 @@ const int TRIGGER_MARGIN = 500;
 unsigned long samples[AVG_SAMPLES];
 unsigned long average = 0;
 
+
 void calc_average()
 {
+    unsigned long sampleMax = 0;
+    unsigned long sampleMin = MAX_DARKNESS_LEVEL;
     unsigned long sum = 0;
     for (int i = 0; i < AVG_SAMPLES; ++i)
+    {
+        sampleMax = max(sampleMax, samples[i]);
+        sampleMin = min(sampleMin, samples[i]);
         sum += samples[i];
-    const auto initial_threshold = static_cast<unsigned long>(sum*0.9/AVG_SAMPLES);
-#ifdef DBG
-    Serial.print("Threshold ");
-    Serial.println(initial_threshold);
-#endif
-    sum = 0;
-    int n = 0;
-    for (int i = 0; i < AVG_SAMPLES; ++i)
-        if (samples[i] > initial_threshold)
-        {
-            sum += samples[i];
-            ++n;
-        }
-    average = sum/n;
-#ifdef DBG
+    }
+
+    //Subtract the two outliers
+    sum = sum - sampleMax - sampleMin;
+
+    average = sum/(AVG_SAMPLES-2); //minus the two outliers
+
     Serial.print("Average: ");
-    Serial.println(average);
-#endif
+    Serial.print(average);
+    Serial.print(" +/- ");
+    Serial.println((sampleMax - sampleMin)/2);
 }
 
 void setup()
@@ -305,7 +306,7 @@ void loop()
     {
         Serial.print("Level: "); Serial.println(level);
     }
-    const int trigger_threshold = average + TRIGGER_MARGIN;
+    const unsigned long trigger_threshold = average * 1.5;
     //Serial.print("Threshold: "); Serial.println(trigger_threshold);
     switch (state)
     {
@@ -330,15 +331,13 @@ void loop()
             play_start = millis();
             state = STATE_PLAYING;
         }
-        else
+
+        for (int i = 1; i < AVG_SAMPLES; ++i)
         {
-            for (int i = 1; i < AVG_SAMPLES; ++i)
-            {
-                samples[i-1] = samples[i];
-            }
-            samples[AVG_SAMPLES-1] = level;
-            calc_average();
+            samples[i-1] = samples[i];
         }
+        samples[AVG_SAMPLES-1] = level;
+        calc_average();
         break;
 
     case STATE_PLAYING:
