@@ -10,6 +10,8 @@ SoftwareSerial mySerial(2, 3); // RX, TX
 // The limit value for measuring darkness, i.e. the maximum value that get_darkness_level() will ever return.
 const int MAX_DARKNESS_LEVEL = 30000;
 
+bool debug_on = false;
+
 class DFPlayer
 {
 public:
@@ -242,6 +244,17 @@ void setup()
 {
     Serial.begin(57600);
     Serial.println("TrashTalk v 0.3");
+    for (int i = 0; i < 10; ++i)
+    {
+        Serial.print('.');
+        delay(100);
+        if (Serial.available())
+        {
+            Serial.println("\nDebug on");
+            debug_on = true;
+            break;
+        }
+    }
 
     mySerial.begin(9600);
 	delay(10);
@@ -255,15 +268,19 @@ void setup()
         digitalWrite(LED_PIN, 0);
         delay(100);
     }
-    Serial.print("Files on flash: ");
-    Serial.println(num_flash_files);
-
+    if (debug_on)
+    {
+        Serial.print("Files on flash: ");
+        Serial.println(num_flash_files);
+    }
+    
     randomSeed(analogRead(0));
 
     for (int i = 0; i < AVG_SAMPLES; ++i)
     {
         samples[i] = get_darkness_level();
-        Serial.println(samples[i]);
+        if (debug_on)
+            Serial.println(samples[i]);
         delay(20);
     }
     calc_average();
@@ -284,7 +301,10 @@ void loop()
     ++n;
 
     const auto level = get_darkness_level();
-    Serial.print("Level: "); Serial.println(level);
+    if (debug_on)
+    {
+        Serial.print("Level: "); Serial.println(level);
+    }
     const int trigger_threshold = average + TRIGGER_MARGIN;
     //Serial.print("Threshold: "); Serial.println(trigger_threshold);
     switch (state)
@@ -293,13 +313,19 @@ void loop()
         if (level > trigger_threshold)
         {
             digitalWrite(LED_PIN, HIGH);
-            Serial.print("Level: ");
-            Serial.print(level);
-            Serial.print(" T ");
-            Serial.println(trigger_threshold);
+            if (debug_on)
+            {
+                Serial.print("Level: ");
+                Serial.print(level);
+                Serial.print(" T ");
+                Serial.println(trigger_threshold);
+            }
             int num = 1+random(num_flash_files);
-            Serial.print("Play ");
-            Serial.println(num);
+            if (debug_on)
+            {
+                Serial.print("Play ");
+                Serial.println(num);
+            }
             player.start_play_physical(num);
             play_start = millis();
             state = STATE_PLAYING;
@@ -337,7 +363,8 @@ void loop()
         if ((millis() - wait_start) > 1000)
         {
             state = STATE_IDLE;
-            Serial.println("Ready");
+            if (debug_on)
+                Serial.println("Ready");
         }
         break;
     }
